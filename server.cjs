@@ -3,8 +3,11 @@ const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 const admin = require("firebase-admin");
+
+// ✅ Parse Firebase Admin key dari environment variable
 const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT);
 
+// ✅ Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -14,7 +17,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🟡 Guna environment variable nanti (jangan hardcode bila deploy Render)
+// ✅ ToyyibPay Credentials (tak sensitif, boleh kekal hardcoded)
 const TOYYIBPAY_SECRET_KEY = "ltbyab4j-3djs-9g1o-yowi-ie54thzqwjbi";
 const TOYYIBPAY_CATEGORY_CODE = "li1wgqv6";
 
@@ -22,10 +25,6 @@ const TOYYIBPAY_CATEGORY_CODE = "li1wgqv6";
 app.post("/createBill", async (req, res) => {
   try {
     const { name, email, phone, amount, bookingId } = req.body;
-
-    if (!name || !email || !amount) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
 
     const form = new URLSearchParams();
     form.append("userSecretKey", TOYYIBPAY_SECRET_KEY);
@@ -40,11 +39,7 @@ app.post("/createBill", async (req, res) => {
     form.append("billEmail", email);
     form.append("billPhone", phone);
 
-    const response = await axios.post(
-      "https://toyyibpay.com/index.php/api/createBill",
-      form
-    );
-
+    const response = await axios.post("https://toyyibpay.com/index.php/api/createBill", form);
     const billCode = response.data[0].BillCode;
 
     await db.collection("payments").doc(billCode).set({
@@ -68,7 +63,7 @@ app.post("/createBill", async (req, res) => {
   }
 });
 
-// ✅ Callback — update payment status in Firestore
+// ✅ Callback URL
 app.post("/toyyibpay/callback", async (req, res) => {
   try {
     const { billcode, status } = req.body;
@@ -87,10 +82,6 @@ app.post("/toyyibpay/callback", async (req, res) => {
   }
 });
 
-// ✅ Root route just to check if server is alive
-app.get("/", (req, res) => {
-  res.send("✅ ToyyibPay server is running!");
-});
-
+// ✅ Server listen
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ ToyyibPay callback server running on port ${PORT}`));

@@ -4,7 +4,9 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 
 // ✅ Ambil Firebase key dari environment (Render → Environment Variables)
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+const serviceAccount = JSON.parse(
+  process.env.FIREBASE_SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n')
+);
 
 const app = express();
 app.use(cors());

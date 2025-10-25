@@ -1,39 +1,40 @@
-// server.js 
+// server.js
 const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 
-// ✅ Ambil Firebase key dari environment (Base64 encoded di Render)
-const serviceAccount = JSON.parse(
-  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, "base64").toString("utf-8")
-);
+// ✅ Ambil Firebase service account (Base64 encoded dari Environment Variable)
+let serviceAccount = null;
 
-if (!encodedKey) {
-  console.error("❌ FIREBASE_SERVICE_ACCOUNT_BASE64 is missing in environment!");
-  process.exit(1);
-}
-
-let serviceAccount;
 try {
-  // Decode Base64 → JSON
-  const decoded = Buffer.from(encodedKey, "base64").toString("utf-8");
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
+    throw new Error("Environment variable FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 not found!");
+  }
+
+  // Decode base64 → JSON string → Object
+  const decoded = Buffer.from(
+    process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64,
+    "base64"
+  ).toString("utf-8");
+
   serviceAccount = JSON.parse(decoded);
   console.log("✅ Firebase service account loaded successfully");
-} catch (error) {
-  console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64:", error);
-  process.exit(1);
+} catch (err) {
+  console.error("❌ Failed to load Firebase service account:", err);
+  process.exit(1); // Stop the app if credential is invalid
 }
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // ✅ Initialize Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
+
 const db = admin.firestore();
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ ToyyibPay Callback Endpoint
 app.post("/toyyibpay/callback", async (req, res) => {
@@ -80,5 +81,6 @@ app.get("/", (req, res) => {
   res.send("ToyyibPay Callback Server Running ✅");
 });
 
+// ✅ Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

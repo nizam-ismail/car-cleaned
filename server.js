@@ -4,7 +4,9 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 
 // ✅ Ambil Firebase key dari environment (Base64 encoded di Render)
-const encodedKey = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+const serviceAccount = JSON.parse(
+  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, "base64").toString("utf-8")
+);
 
 if (!encodedKey) {
   console.error("❌ FIREBASE_SERVICE_ACCOUNT_BASE64 is missing in environment!");

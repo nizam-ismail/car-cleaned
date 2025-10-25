@@ -1,12 +1,26 @@
-// server.cjs
+// server.js 
 const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 
-// ✅ Ambil Firebase key dari environment (Render → Environment Variables)
-const serviceAccount = JSON.parse(
-  process.env.FIREBASE_SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n')
-);
+// ✅ Ambil Firebase key dari environment (Base64 encoded di Render)
+const encodedKey = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+
+if (!encodedKey) {
+  console.error("❌ FIREBASE_SERVICE_ACCOUNT_BASE64 is missing in environment!");
+  process.exit(1);
+}
+
+let serviceAccount;
+try {
+  // Decode Base64 → JSON
+  const decoded = Buffer.from(encodedKey, "base64").toString("utf-8");
+  serviceAccount = JSON.parse(decoded);
+  console.log("✅ Firebase service account loaded successfully");
+} catch (error) {
+  console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64:", error);
+  process.exit(1);
+}
 
 const app = express();
 app.use(cors());

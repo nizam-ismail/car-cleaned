@@ -9,40 +9,40 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ Decode Base64 Firebase key dari Environment
-const decodedKey = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf8");
-const serviceAccount = JSON.parse(decodedKey);
+try {
+  const decodedKey = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf8");
+  const serviceAccount = JSON.parse(decodedKey);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+
+  console.log("✅ Firebase service account loaded successfully");
+} catch (error) {
+  console.error("❌ Failed to load Firebase credentials:", error);
+}
 
 const db = admin.firestore();
 
-// ✅ ToyyibPay Callback
+// ✅ Callback route
 app.post("/toyyibpay/callback", async (req, res) => {
   try {
-    console.log("✅ ToyyibPay Callback Received:", req.body);
+    const { billcode, order_id, status } = req.body;
+    if (!order_id) return res.status(400).send("Missing order_id");
 
-    const { billcode, order_id, status, amount, refno, transaction_time, buyerEmail } = req.body;
-    if (!order_id) return res.status(400).json({ success: false, message: "Missing order_id" });
-
-    const bookingRef = db.collection("bookings").doc(order_id);
-    await bookingRef.update({
+    await db.collection("bookings").doc(order_id).update({
       paymentStatus: status === "1" ? "Paid" : "Failed",
-      paymentInfo: { billcode, refno, transaction_time, amount, buyerEmail },
+      updatedAt: new Date().toISOString(),
     });
 
-    console.log(`💰 Booking ${order_id} updated to ${status === "1" ? "Paid" : "Failed"}`);
-    return res.status(200).send("Callback processed successfully");
-  } catch (error) {
-    console.error("❌ Error processing callback:", error);
-    return res.status(500).send("Internal Server Error");
+    res.send("Callback processed ✅");
+  } catch (err) {
+    console.error("❌ Callback error:", err);
+    res.status(500).send("Internal error");
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("ToyyibPay Callback Server Running ✅");
-});
+app.get("/", (req, res) => res.send("ToyyibPay Callback Server Running ✅"));
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -7,7 +7,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Load Firebase credential dari Base64 environment variable
 try {
   const decoded = Buffer.from(
     process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64,
@@ -26,7 +25,6 @@ try {
 
 const db = admin.firestore();
 
-// ✅ ToyyibPay Callback Endpoint
 app.post("/toyyibpay/callback", async (req, res) => {
   try {
     console.log("✅ ToyyibPay Callback Received:", req.body);

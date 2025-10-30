@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import chalk from "chalk";
 
 dotenv.config();
 
@@ -23,21 +24,21 @@ app.post(
 
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-      console.log("✅ Webhook verified:", event.type);
+      console.log(chalk.green("✅ Webhook verified:"), event.type);
     } catch (err) {
-      console.error("❌ Webhook signature verification failed:", err.message);
+      console.error(chalk.red("❌ Webhook verification failed:"), err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     // ✅ Handle events
     if (event.type === "payment_intent.succeeded") {
       const paymentIntent = event.data.object;
-      console.log("💰 Payment succeeded for:", paymentIntent.id);
+      console.log(chalk.green("💰 Payment succeeded for:"), paymentIntent.id);
     } else if (event.type === "payment_intent.payment_failed") {
       const paymentIntent = event.data.object;
-      console.log("❌ Payment failed for:", paymentIntent.id);
+      console.log(chalk.red("❌ Payment failed for:"), paymentIntent.id);
     } else {
-      console.log("ℹ️ Received unhandled event:", event.type);
+      console.log(chalk.yellow("ℹ️ Received unhandled event:"), event.type);
     }
 
     res.json({ received: true });
@@ -45,7 +46,10 @@ app.post(
 );
 
 // ✅ Parse JSON untuk route lain (selepas webhook)
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
+
+// ✅ Health check route
+app.get("/health", (req, res) => res.send("OK"));
 
 // ✅ Root route
 app.get("/", (req, res) => {
@@ -54,4 +58,6 @@ app.get("/", (req, res) => {
 
 // ✅ Start server
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(chalk.blueBright(`🚀 Server running on port ${PORT}`))
+);
